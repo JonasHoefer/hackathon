@@ -5,6 +5,8 @@
 #include "lidar_segmentation.h"
 #include <chrono>  // for high_resolution_clock
 
+#define FRAME_ID "odom"
+
 // Callback for cloud segmentation example  
 void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
     // Record start time
@@ -84,7 +86,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
         // Convert to ROS data type
         pcl_conversions::fromPCL(outputPCL, output);
         // add the cluster to the array message
-        output.header.frame_id = "odom_bmw_tech";
+        output.header.frame_id = FRAME_ID;
         pcl_ground.publish(output);
 
 
@@ -103,7 +105,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
             pcl::toPCLPointCloud2(*lanePoints, outputPCL);
             pcl_conversions::fromPCL(outputPCL, output);
             // add the cluster to the array message
-            output.header.frame_id = "odom_bmw_tech";
+            output.header.frame_id = FRAME_ID;
             pcl_lane.publish(output);
         }
         else{
@@ -118,7 +120,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
         // Convert to ROS data type
         pcl_conversions::fromPCL(outputPCL, output);
         // add the cluster to the array message
-        output.header.frame_id = "odom_bmw_tech";
+        output.header.frame_id = FRAME_ID;
         pcl_seg.publish(output);
 
     }
@@ -180,7 +182,7 @@ void segmentation::extract_objects(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud) {
     // Convert to ROS data type
     pcl_conversions::fromPCL(outputPCL, output);
     // add the cluster to the array message
-    output.header.frame_id = "odom_bmw_tech";
+    output.header.frame_id = FRAME_ID;
     pcl_objects.publish(output);
 
 
