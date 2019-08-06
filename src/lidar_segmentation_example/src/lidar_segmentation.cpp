@@ -13,32 +13,29 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
     auto start = std::chrono::high_resolution_clock::now();
 
     // convert from sensor_msgs to pcl PCLPointCloud2 
-    pcl::PCLPointCloud2 *cloud = new pcl::PCLPointCloud2;
+    pcl::PCLPointCloud2 cloud;
     // pcl::PCLPointCloud2ConstPtr cloudPtr(cloud);
-    pcl_conversions::toPCL(*cloud_msg, *cloud);
+    pcl_conversions::toPCL(*cloud_msg, cloud);
 
     // cresting  boost shared pointer for pcl function inputs
-    pcl::PointCloud<pcl::PointXYZI> *inputCloud = new pcl::PointCloud<pcl::PointXYZI>;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloudPtr(inputCloud);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloudPtr(new pcl::PointCloud<pcl::PointXYZI>);
 
     // convert the pcl::PointCloud2 tpye to pcl::PointCloud<pcl::PointXYZI>
-    pcl::fromPCLPointCloud2(*cloud, *inputCloudPtr);
+    pcl::fromPCLPointCloud2(cloud, *inputCloudPtr);
 
 
     /// First we can apply a pass through filter, so we receive the filtered and the negative filtered cloud
     // create a pcl object to hold the passthrough filtered results
-    pcl::PointCloud<pcl::PointXYZI> *cloudFiltered = new pcl::PointCloud<pcl::PointXYZI>;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloudFilteredPtr(cloudFiltered);
-
-    pcl::PointCloud<pcl::PointXYZI> *cloudNegFiltered = new pcl::PointCloud<pcl::PointXYZI>;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloudNegFilteredPtr(cloudNegFiltered);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloudFilteredPtr(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloudNegFilteredPtr(new pcl::PointCloud<pcl::PointXYZI>);
 
 
     /// Pass Through - Create the filtering object for Surface Detetction
     pcl::PassThrough<pcl::PointXYZI> pass;
     pass.setInputCloud(inputCloudPtr);
     pass.setFilterFieldName("z");
-    pass.setFilterLimits(-2.5, -1.); // depending on mounting position and relative angle between lidar mount and surface
+    pass.setFilterLimits(-2.5,
+                         -1.); // depending on mounting position and relative angle between lidar mount and surface
     pass.filter(*cloudFilteredPtr);
     // apply the negative filter to get the remaining cloud
     pass.setFilterLimitsNegative(true);
@@ -68,12 +65,11 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
     // Create the filtering object
     pcl::ExtractIndices<pcl::PointXYZI> extract;
 
-    if (inliers->indices.size() == 0) {
+    if (inliers->indices.empty()) {
         ROS_INFO_STREAM ("Could not estimate a planar model for the given dataset.");
         *cloudNegFilteredPtr += *cloudFilteredPtr;
-
     } else {
-        // Extraxt ground plane indicies
+        // Extract ground plane indices
         extract.setInputCloud(cloudFilteredPtr);
         extract.setIndices(inliers);
         extract.filter(*groundCloud);
@@ -92,7 +88,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
 
     }
     // In case that we extracted a ground we can apply a pass through for intensities
-    if (groundCloud->points.size() !=0){
+    if (!groundCloud->points.empty()) {
         pcl::PointCloud<pcl::PointXYZI>::Ptr lanePoints(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PassThrough<pcl::PointXYZI> passIntensity;
         passIntensity.setInputCloud(groundCloud);
@@ -100,21 +96,19 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
         passIntensity.setFilterLimits(60, 120); // depending on the intensity output of the lidar device
         passIntensity.filter(*lanePoints);
 
-        if (lanePoints->points.size() != 0){
+        if (!lanePoints->points.empty()) {
             // convert to sensor message  and output pcd
             pcl::toPCLPointCloud2(*lanePoints, outputPCL);
             pcl_conversions::fromPCL(outputPCL, output);
             // add the cluster to the array message
             output.header.frame_id = FRAME_ID;
             pcl_lane.publish(output);
-        }
-        else{
+        } else {
             ROS_INFO_STREAM ("No lane points extracted .");
         }
-
     }
 
-    if (cloudNegFilteredPtr->points.size() != 0) {
+    if (!cloudNegFilteredPtr->points.empty()) {
 
         pcl::toPCLPointCloud2(*cloudNegFilteredPtr, outputPCL);
         // Convert to ROS data type
@@ -132,7 +126,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
 }
 
 void segmentation::extract_surface(pcl::PointCloud<pcl::PointXYZI>::Ptr) {
-    // Place segementation of surface here
+    // Place segmentation of surface here
 }
 
 
@@ -140,63 +134,59 @@ void segmentation::extract_objects(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud) {
     /// * output cloud definition **
     pcl::PCLPointCloud2 outputPCL;
     sensor_msgs::PointCloud2 output;
-    pcl::PointCloud < pcl::PointXYZI>::Ptr buildings_pcl (new pcl::PointCloud <pcl::PointXYZI>);
-    std::vector<int> v = {0, 1, 2,3}; // Depends on the number of surfaces we're expecting !!
-    for (int i : v){
+    pcl::PointCloud<pcl::PointXYZI>::Ptr buildings_pcl(new pcl::PointCloud<pcl::PointXYZI>);
+    std::vector<int> v = {0, 1, 2, 3}; // Depends on the number of surfaces we're expecting !!
+    for (int i : v) {
 
 
-        pcl::SampleConsensusModelPerpendicularPlane <pcl::PointXYZI >::Ptr model_p (new pcl::
-        SampleConsensusModelPerpendicularPlane <pcl::PointXYZI > (cloud));
-        pcl::PointCloud < pcl::PointXYZI>::Ptr tmp_pcl (new pcl::PointCloud <pcl::PointXYZI>);
-        pcl::PointIndices::Ptr vertical_inliers (new pcl::PointIndices);
+        pcl::SampleConsensusModelPerpendicularPlane<pcl::PointXYZI>::Ptr model_p(new pcl::
+        SampleConsensusModelPerpendicularPlane<pcl::PointXYZI>(cloud));
+        pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pcl(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointIndices::Ptr vertical_inliers(new pcl::PointIndices);
         pcl::ExtractIndices<pcl::PointXYZI> extract1;
 
-        std::vector <int> in_vertical;
+        std::vector<int> in_vertical;
 
-        model_p->setAxis (Eigen::Vector3f (1.0, 0.0, 0.0));
-        model_p->setEpsAngle (pcl::deg2rad (2.0));  // need to be set
+        model_p->setAxis(Eigen::Vector3f(1.0, 0.0, 0.0));
+        model_p->setEpsAngle(pcl::deg2rad(2.0));  // need to be set
 
-        pcl::RandomSampleConsensus < pcl::PointXYZI> ransac (model_p);
-        ransac.setDistanceThreshold (0.5); // distance threshold of 2m
+        pcl::RandomSampleConsensus<pcl::PointXYZI> ransac(model_p);
+        ransac.setDistanceThreshold(0.5); // distance threshold of 2m
         ransac.setMaxIterations(500);
-        ransac.computeModel (2);
-        ransac.getInliers (in_vertical);
+        ransac.computeModel(2);
+        ransac.getInliers(in_vertical);
 
-//            pcl::copyPointCloud <pcl::PointXYZI> (*combined_cloud, in_vertical, *vertical_pcl);
+        // pcl::copyPointCloud <pcl::PointXYZI> (*combined_cloud, in_vertical, *vertical_pcl);
         vertical_inliers->indices = in_vertical;
 
 
-
-        extract1.setInputCloud (cloud);
-        extract1.setIndices (vertical_inliers);
+        extract1.setInputCloud(cloud);
+        extract1.setIndices(vertical_inliers);
         extract1.filter(*tmp_pcl); // write temporary building
 
-        extract1.setNegative (true);
-        extract1.filter (*cloud); // substract temp building from infa pcl
+        extract1.setNegative(true);
+        extract1.filter(*cloud); // substract temp building from infa pcl
         *buildings_pcl += *tmp_pcl;  // add tmp to building cloud
 
 
     }
     // publish building cloud
-    pcl::toPCLPointCloud2( *buildings_pcl ,outputPCL);
+    pcl::toPCLPointCloud2(*buildings_pcl, outputPCL);
     // Convert to ROS data type
     pcl_conversions::fromPCL(outputPCL, output);
     // add the cluster to the array message
     output.header.frame_id = FRAME_ID;
     pcl_objects.publish(output);
-
-
 }
 
 
-
-segmentation::segmentation(ros::NodeHandle nh) : m_nh(nh){
-        // define the subscriber and publisher
-//        m_sub = m_nh.subscribe ("cloud_pcd", 1, &segmentation::cloud_callback, this);
-        m_sub = m_nh.subscribe ("/vlp_102/velodyne_points", 1, &segmentation::cloud_callback, this);
-        m_markerArray = m_nh.advertise<visualization_msgs::MarkerArray> ("obj_recognition/obj_marker",1);
-        pcl_seg = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/not_segmented",1);
-        pcl_ground = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/ground",1);
-        pcl_objects = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/objects",1);
-        pcl_lane = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/lane",1);
-    }
+segmentation::segmentation(ros::NodeHandle nh) : m_nh(nh) {
+    // define the subscriber and publisher
+    // m_sub = m_nh.subscribe ("cloud_pcd", 1, &segmentation::cloud_callback, this);
+    m_sub = m_nh.subscribe("/vlp_102/velodyne_points", 1, &segmentation::cloud_callback, this);
+    m_markerArray = m_nh.advertise<visualization_msgs::MarkerArray>("obj_recognition/obj_marker", 1);
+    pcl_seg = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/not_segmented", 1);
+    pcl_ground = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/ground", 1);
+    pcl_objects = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/objects", 1);
+    pcl_lane = m_nh.advertise<sensor_msgs::PointCloud2>("cloud_seg/lane", 1);
+}

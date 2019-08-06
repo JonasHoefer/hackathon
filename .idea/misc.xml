@@ -5,6 +5,8 @@
   </component>
   <component name="CidrRootsConfiguration">
     <sourceRoots>
+      <file path="$PROJECT_DIR$/src/lane_detection/include" />
+      <file path="$PROJECT_DIR$/src/lane_detection/src" />
       <file path="$PROJECT_DIR$/src/lidar_segmentation_example/include" />
       <file path="$PROJECT_DIR$/src/lidar_segmentation_example/src" />
     </sourceRoots>
