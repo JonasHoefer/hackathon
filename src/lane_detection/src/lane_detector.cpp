@@ -21,7 +21,6 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
     pcl_conversions::toPCL(cloud_msg_transformed, input_cloud);
 
 
-
     pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
