@@ -23,11 +23,35 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
     pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
-    auto output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 5), -0.5, 0.2);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 5), -0.5, 0.2);
+
+    if (output_cloud_ptr->empty())
+        return;
+
+    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
+    tree->setInputCloud(output_cloud_ptr);
+
+    pcl::EuclideanClusterExtraction<pcl::PointXYZI> cluster_extraction;
+    cluster_extraction.setClusterTolerance(0.5);
+    cluster_extraction.setSearchMethod(tree);
+    cluster_extraction.setMinClusterSize(10);
+    cluster_extraction.setMaxClusterSize(std::numeric_limits<int>::max());
+    cluster_extraction.setInputCloud(output_cloud_ptr);
+
+    std::vector<pcl::PointIndices> cluster_indices;
+    cluster_extraction.extract(cluster_indices);
+
+    pcl::PointIndices max_cluster_indices = *std::max_element(cluster_indices.begin(), cluster_indices.end(),
+                                                              [](const pcl::PointIndices& a, const pcl::PointIndices& b) { return a.indices.size() < b.indices.size(); });
+
+    // TODO: ONE LINE!!
+    pcl::PointCloud<pcl::PointXYZI> max_cluster_points;
+    for (int index : max_cluster_indices.indices) {
+        max_cluster_points.points.push_back((*output_cloud_ptr)[index]);
+    }
 
     pcl::PCLPointCloud2 output_cloud;
-    pcl::toPCLPointCloud2(*output_cloud_ptr, output_cloud);
-
+    pcl::toPCLPointCloud2(max_cluster_points, output_cloud);
     publish_lane(output_cloud);
 }
 

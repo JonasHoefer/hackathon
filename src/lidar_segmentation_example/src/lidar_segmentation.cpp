@@ -66,7 +66,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
     pcl::ExtractIndices<pcl::PointXYZI> extract;
 
     if (inliers->indices.empty()) {
-        ROS_INFO_STREAM ("Could not estimate a planar model for the given dataset.");
+        ROS_INFO_STREAM("Could not estimate a planar model for the given dataset.");
         *cloudNegFilteredPtr += *cloudFilteredPtr;
     } else {
         // Extract ground plane indices
@@ -104,7 +104,7 @@ void segmentation::cloud_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_
             output.header.frame_id = FRAME_ID;
             pcl_lane.publish(output);
         } else {
-            ROS_INFO_STREAM ("No lane points extracted .");
+            ROS_INFO_STREAM("No lane points extracted .");
         }
     }
 
@@ -139,8 +139,7 @@ void segmentation::extract_objects(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud) {
     for (int i : v) {
 
 
-        pcl::SampleConsensusModelPerpendicularPlane<pcl::PointXYZI>::Ptr model_p(new pcl::
-        SampleConsensusModelPerpendicularPlane<pcl::PointXYZI>(cloud));
+        pcl::SampleConsensusModelPerpendicularPlane<pcl::PointXYZI>::Ptr model_p(new pcl::SampleConsensusModelPerpendicularPlane<pcl::PointXYZI>(cloud));
         pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pcl(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointIndices::Ptr vertical_inliers(new pcl::PointIndices);
         pcl::ExtractIndices<pcl::PointXYZI> extract1;
