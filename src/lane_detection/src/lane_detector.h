@@ -44,6 +44,8 @@ namespace htwk {
 
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
+
+        void publish_lane(const pcl::PCLPointCloud2& cloud);
     };
 }
 
