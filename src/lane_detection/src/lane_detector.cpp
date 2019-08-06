@@ -24,16 +24,22 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
     pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_points(new pcl::PointCloud<pcl::PointXYZI>);
-
+    pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filtered_points(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PassThrough<pcl::PointXYZI> intensity_filter;
     intensity_filter.setFilterFieldName("intensity");
     intensity_filter.setFilterLimits(5, FLT_MAX);
     intensity_filter.setInputCloud(input_cloud_ptr);
-    intensity_filter.filter(*filtered_points);
+    intensity_filter.filter(*intensity_filtered_points);
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr height_filtered_points(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PassThrough<pcl::PointXYZI> height_filter;
+    height_filter.setFilterFieldName("z");
+    height_filter.setFilterLimits(-0.5, 0.2);
+    height_filter.setInputCloud(intensity_filtered_points);
+    height_filter.filter(*height_filtered_points);
 
     pcl::PCLPointCloud2 output_cloud;
-    pcl::toPCLPointCloud2(*filtered_points, output_cloud);
+    pcl::toPCLPointCloud2(*height_filtered_points, output_cloud);
 
     publish_lane(output_cloud);
 }
