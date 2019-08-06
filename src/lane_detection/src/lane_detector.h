@@ -49,7 +49,11 @@ namespace htwk {
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
 
-        void publish_lane(const pcl::PCLPointCloud2 &cloud);
+        void publish_lane(const pcl::PCLPointCloud2 &cloud) noexcept;
+
+        static pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float minimum) noexcept;
+
+        static pcl::PointCloud<pcl::PointXYZI>::Ptr height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float min, float max) noexcept;
     };
 }
 
