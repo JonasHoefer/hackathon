@@ -13,12 +13,24 @@ htwk::lane_detector::lane_detector(ros::NodeHandle &handle) noexcept {
 }
 
 void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept {
-    pcl::PCLPointCloud2 point_cloud;
-    pcl_conversions::toPCL(*cloud_msg, point_cloud);
+    pcl::PCLPointCloud2 input_cloud;
+    pcl_conversions::toPCL(*cloud_msg, input_cloud);
 
+    pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
+    pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_points(new pcl::PointCloud<pcl::PointXYZI>);
 
-    publish_lane(point_cloud);
+    pcl::PassThrough<pcl::PointXYZI> intensity_filter;
+    intensity_filter.setFilterFieldName("intensity");
+    intensity_filter.setFilterLimits(100, FLT_MAX);
+    intensity_filter.setInputCloud(input_cloud_ptr);
+    intensity_filter.filter(*filtered_points);
+
+    pcl::PCLPointCloud2 output_cloud;
+    pcl::toPCLPointCloud2(*filtered_points, output_cloud);
+
+    publish_lane(output_cloud);
 }
 
 void htwk::lane_detector::publish_lane(const pcl::PCLPointCloud2 &cloud) {

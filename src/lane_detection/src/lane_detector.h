@@ -32,6 +32,9 @@
 #include <pcl/features/normal_3d.h>
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
+#include <tf/transform_listener.h>
+#include <pcl_ros/transforms.h>
+
 
 namespace htwk {
     class lane_detector {
@@ -39,13 +42,14 @@ namespace htwk {
         explicit lane_detector(ros::NodeHandle &handle) noexcept;
 
     private:
+        tf::TransformListener m_transform;
         ros::Subscriber m_velodyne_points_subscriber;
         ros::Publisher m_lane_point_publisher;
 
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
 
-        void publish_lane(const pcl::PCLPointCloud2& cloud);
+        void publish_lane(const pcl::PCLPointCloud2 &cloud);
     };
 }
 
