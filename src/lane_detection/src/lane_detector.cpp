@@ -4,17 +4,23 @@
 
 #include "lane_detector.h"
 
-#define FRAME_ID "odom"
+#define FRAME_ID "ouster"
 
 
 htwk::lane_detector::lane_detector(ros::NodeHandle &handle) noexcept {
-    m_velodyne_points_subscriber = handle.subscribe("/vlp_102/velodyne_points", 1, &htwk::lane_detector::raw_data_callback, this);
+    //m_velodyne_points_subscriber = handle.subscribe("/vlp_102/velodyne_points", 1, &htwk::lane_detector::raw_data_callback, this);
+    m_velodyne_points_subscriber = handle.subscribe("/points_raw", 1, &htwk::lane_detector::raw_data_callback, this);
     m_lane_point_publisher = handle.advertise<sensor_msgs::PointCloud2>("cloud_seg/lane", 1);
 }
 
 void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept {
+    sensor_msgs::PointCloud2 cloud_msg_transformed;
+    pcl_ros::transformPointCloud("odom", *cloud_msg, cloud_msg_transformed, m_transform);
+
     pcl::PCLPointCloud2 input_cloud;
-    pcl_conversions::toPCL(*cloud_msg, input_cloud);
+    pcl_conversions::toPCL(cloud_msg_transformed, input_cloud);
+
+
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
@@ -23,7 +29,7 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
 
     pcl::PassThrough<pcl::PointXYZI> intensity_filter;
     intensity_filter.setFilterFieldName("intensity");
-    intensity_filter.setFilterLimits(100, FLT_MAX);
+    intensity_filter.setFilterLimits(5, FLT_MAX);
     intensity_filter.setInputCloud(input_cloud_ptr);
     intensity_filter.filter(*filtered_points);
 
