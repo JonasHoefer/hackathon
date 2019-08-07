@@ -19,12 +19,17 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
     pcl::PCLPointCloud2 input_cloud;
     pcl_conversions::toPCL(cloud_msg_transformed, input_cloud);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud <pcl::PointXYZI>);
     pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
     // apply filter
     pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 5), -0.5, 0.2);
     pcl::PointCloud<pcl::PointXYZI>::Ptr largest_cluster_ptr = extract_largest_cluster(filtered_cloud_ptr);
+
+    // points with in different zones
+    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree <pcl::PointXYZI>);
+    tree->setInputCloud(largest_cluster_ptr);
+    tree->nearestKSearch();
 
     // output
     pcl::PCLPointCloud2 output_cloud;
