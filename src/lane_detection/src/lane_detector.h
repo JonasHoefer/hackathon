@@ -43,7 +43,7 @@ namespace htwk {
 
     private:
         tf::TransformListener m_transform;
-        ros::Subscriber m_velodyne_points_subscriber;
+        ros::Subscriber m_lidar_points_subscriber;
         ros::Publisher m_lane_point_publisher;
 
     private:
