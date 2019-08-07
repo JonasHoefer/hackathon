@@ -4,5 +4,6 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/kitti-pcl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/kitti_player" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/spline" vcs="Git" />
   </component>
 </project>

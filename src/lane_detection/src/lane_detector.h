@@ -54,6 +54,8 @@ namespace htwk {
         static pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float minimum) noexcept;
 
         static pcl::PointCloud<pcl::PointXYZI>::Ptr height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float min, float max) noexcept;
+
+        static pcl::PointCloud<pcl::PointXYZI>::Ptr extract_largest_cluster(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input) noexcept;
     };
 }
 
