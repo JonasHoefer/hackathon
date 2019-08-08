@@ -5,7 +5,9 @@ from keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 from max_unpooling_layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
 import time
-from tensorboard_wrapper import TrainValTensorBoard
+import tensorflow as tf
+from keras.callbacks import TensorBoard
+
 
 img_w = 200
 img_h = 400
@@ -24,22 +26,24 @@ def data_processor(split_range):
     prefix_list = ['um', 'umm', 'uu']
     data = []
     labels = []
-    for prefix in prefix_list:
-        for i in split_range:
-            iterator = "%06d" % i
-            try:
-                feature = img_to_array(
-                    load_img('../data/features/' + prefix + '_' + iterator + '.png',
-                             color_mode="grayscale"))
-                data.append(feature)
-                label = img_to_array(
-                    load_img('../data/labels_filtered/label_' + prefix + '_' + iterator + '.png',
-                             color_mode="grayscale")).reshape((img_h, img_w))
-                label = label_map(np.clip(label, 0, 1))
-                label = label.reshape((img_h * img_w, n_labels))
-                labels.append(label)
-            except:
-                pass
+
+    for theta in range(-30, 30, 5):
+        for prefix in prefix_list:
+            for i in split_range:
+                iterator = "%06d" % i
+                try:
+                    feature = img_to_array(
+                        load_img('../data/features/' + prefix + '_' + iterator + '_' + str(theta) + '.png',
+                                 color_mode="grayscale"))
+                    data.append(feature)
+                    label = img_to_array(
+                        load_img('../data/labels/ground_truth_transformed_' + prefix + '_' + iterator + '_' + str(
+                            theta) + '.png', color_mode="grayscale")).reshape((img_h, img_w))
+                    label = label_map(np.clip(label, 0, 1))
+                    label = label.reshape((img_h * img_w, n_labels))
+                    labels.append(label)
+                except:
+                    pass
 
     data = np.array(data)
     labels = np.array(labels)
@@ -48,6 +52,11 @@ def data_processor(split_range):
 
 X_train, y_train = data_processor(range(0, 73))
 X_test, y_test = data_processor(range(73, 89))
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
+
 
 inputs = Input(shape=(img_h, img_w, 1))
 encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(inputs)
@@ -72,8 +81,8 @@ outputs = Activation("softmax")(permute)
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print(model.summary())
 
-model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
-model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=10, validation_data=(X_test, y_test),
-          callbacks=[TrainValTensorBoard(log_dir='/tmp/autoencoder-'+str(time.time()))])
+model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.01, decay=1e-5), metrics=['accuracy'])
+model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test),
+          callbacks=[TensorBoard(log_dir='/tmp/autoencoder-' + str(time.time()))])
 
 model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
