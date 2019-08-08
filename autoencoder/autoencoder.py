@@ -2,9 +2,12 @@ from keras.layers import Permute, Softmax, Conv2D, Flatten, MaxPool2D, UpSamplin
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.preprocessing.image import load_img, img_to_array
+from keras.callbacks import TensorBoard
 import cv2
 import numpy as np
 from max_unpooling_layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
+import time
+from tensorboard_wrapper import TrainValTensorBoard
 
 img_w = 200
 img_h = 400
@@ -19,89 +22,36 @@ def label_map(labels):
     return label_map
 
 
-prefix_list = ['um', 'umm', 'uu']
-data = []
-labels = []
-for prefix in prefix_list:
-    for i in range(0, 98):
-        iterator = "%06d" % i
-        try:
-            feature = img_to_array(load_img('/home/mechlab/hackathon/data/features/' + prefix + '_' + iterator + '.png', color_mode="grayscale"))
-            data.append(feature)
-            label = img_to_array(load_img('/home/mechlab/hackathon/data/labels_filtered/label_' + prefix + '_' + iterator + '.png', color_mode="grayscale")).reshape((img_h, img_w))
-            label = label_map(np.clip(label, 0, 1))
-            label = label.reshape((img_h * img_w, n_labels))
-            labels.append(label)
-        except:
-            pass
+def data_processor(split_range):
+    prefix_list = ['um', 'umm', 'uu']
+    data = []
+    labels = []
+    for prefix in prefix_list:
+        for i in split_range:
+            iterator = "%06d" % i
+            try:
+                feature = img_to_array(
+                    load_img('/home/mechlab/hackathon/data/features/' + prefix + '_' + iterator + '.png',
+                             color_mode="grayscale"))
+                data.append(feature)
+                label = img_to_array(
+                    load_img('/home/mechlab/hackathon/data/labels_filtered/label_' + prefix + '_' + iterator + '.png',
+                             color_mode="grayscale")).reshape((img_h, img_w))
+                label = label_map(np.clip(label, 0, 1))
+                label = label.reshape((img_h * img_w, n_labels))
+                labels.append(label)
+            except:
+                pass
 
-data = np.array(data)
-labels = np.array(labels)
-print data.shape
-print labels.shape
+    data = np.array(data)
+    labels = np.array(labels)
+    return data, labels
 
-# img = load_img('/home/mechlab/hackathon/data/features/um_000000.png', color_mode="grayscale")
-# # report details about the image
-# print(type(img))
-# print(img.format)
-# print(img.mode)
-# print(img.size)
-#
-# img_array = img_to_array(img)
-# print(img_array.dtype)
-# print(img_array.shape)
-#
-# X_train = np.expand_dims(cv2.imread('/home/mechlab/hackathon/data/features/um_000000.png'), 0)
-# y_train = img_to_array(img).reshape((img_h, img_w))
-#
-# print ("strich")
-# print(y_train.shape)
-# y_train = np.clip(y_train, 0, 1)
-# print(y_train.shape)
-#
-# y_train = label_map(y_train)
 
-# autoencoder = Sequential()
-# # autoencoder.add(Input(shape=(400, 200, 1)))
-# autoencoder.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=img_array.shape, activation='elu', strides=(1, 1), padding='same'))
-# conv_first = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')
-# autoencoder.add(conv_first)
-# max_pool_1, mask_1 = MaxPoolingWithArgmax2D((2, 2))(conv_first)
-# autoencoder.add(max_pool_1)
-# autoencoder.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 1)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2)))
-# autoencoder.add(
-#     Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2)))
-# conv = Conv2D(filters=32, kernel_size=(1, 1))
-# autoencoder.add(conv)
-# # autoencoder.add(UpSampling2D(size=(2, 2)))
-# max_unpooling_1 = MaxUnpooling2D((2,2))([conv, mask_1])
-# autoencoder.add(max_unpooling_1)
-# autoencoder.add(Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same'))
-# autoencoder.add(Conv2D(filters=2, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same'))
-# autoencoder.add(Reshape((2, 400 * 200)))
-# autoencoder.add(Permute(dims=(2,1)))
-# autoencoder.add(Activation('softmax'))
-#
-# #autoencoder.build(input_shape=(400, 200, 1))
-# print autoencoder.summary()
-#
-# autoencoder.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.01), metrics=['accuracy'])
-# TODO: replace with testing data
-#autoencoder.fit(X_train, y_train, batch_size=4, epochs=5, validation_data=(X_train, y_train))
+X_train, y_train = data_processor(range(0, 73))
+X_test, y_test = data_processor(range(73, 89))
 
-inputs = Input(batch_shape=(4, img_h, img_w, 1))
+inputs = Input(shape=(img_h, img_w, 1))
 encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(inputs)
 encoded2 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(encoded1)
 max_pool, mask_1 = MaxPoolingWithArgmax2D((2, 2))(encoded2)
@@ -114,15 +64,18 @@ cnt_mod6 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='e
 cnt_mod7 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2))(cnt_mod6)
 cnt_mod8 = Conv2D(filters=32, kernel_size=(1, 1))(cnt_mod7)
 
-decoder1 = MaxUnpooling2D((2,2))([cnt_mod8, mask_1])
+decoder1 = MaxUnpooling2D((2, 2))([cnt_mod8, mask_1])
 decoder2 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(decoder1)
 decoder3 = Conv2D(filters=2, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(decoder2)
 reshape = Reshape((2, 400 * 200))(decoder3)
-permute = Permute(dims=(2,1))(reshape)
+permute = Permute(dims=(2, 1))(reshape)
 outputs = Activation("softmax")(permute)
 
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print model.summary()
 
 model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.01), metrics=['accuracy'])
-model.fit(data, labels, batch_size=4, epochs=5, validation_data=(data, labels))
+model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=10, validation_data=(X_test, y_test),
+          callbacks=[TrainValTensorBoard(log_dir='/tmp/autoencoder')])
+
+model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
