@@ -1,13 +1,13 @@
-from keras.layers import Permute, Softmax, Conv2D, Flatten, MaxPool2D, Dropout, Reshape, Activation, Input
+from keras.layers import Permute, Conv2D, BatchNormalization, Dropout, Reshape, Activation, Input
 from keras.models import Sequential, Model
 from keras.optimizers import Adam, SGD
+from keras.callbacks import ModelCheckpoint
 from keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 from max_unpooling_layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
 import time
 import tensorflow as tf
 from keras.callbacks import TensorBoard
-
 
 img_w = 200
 img_h = 400
@@ -51,37 +51,47 @@ def data_processor(split_range):
     return data, labels
 
 
-X_train, y_train = data_processor(range(0, 73))
+X_train, y_train = data_processor(range(0, 1))
 X_test, y_test = data_processor(range(73, 89))
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 session = tf.Session(config=config)
 
-
 inputs = Input(shape=(img_h, img_w, 1))
 encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same', )(inputs)
+encoded1 = BatchNormalization()(encoded1)
 encoded2 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(encoded1)
+encoded2 = BatchNormalization()(encoded2)
 max_pool, mask_1 = MaxPoolingWithArgmax2D((2, 2))(encoded2)
 cnt_mod1 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 1))(max_pool)
 cnt_mod1 = Dropout(rate=0.25)(cnt_mod1)
+cnt_mod1 = BatchNormalization()(cnt_mod1)
 cnt_mod2 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2))(cnt_mod1)
 cnt_mod2 = Dropout(rate=0.25)(cnt_mod2)
+cnt_mod2 = BatchNormalization()(cnt_mod2)
 cnt_mod3 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(2, 4))(cnt_mod2)
 cnt_mod3 = Dropout(rate=0.25)(cnt_mod3)
+cnt_mod3 = BatchNormalization()(cnt_mod3)
 cnt_mod4 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(4, 8))(cnt_mod3)
 cnt_mod4 = Dropout(rate=0.25)(cnt_mod4)
+cnt_mod4 = BatchNormalization()(cnt_mod4)
 cnt_mod5 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(8, 16))(cnt_mod4)
 cnt_mod5 = Dropout(rate=0.25)(cnt_mod5)
+cnt_mod5 = BatchNormalization()(cnt_mod5)
 cnt_mod6 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(16, 32))(cnt_mod5)
 cnt_mod6 = Dropout(rate=0.25)(cnt_mod6)
+cnt_mod6 = BatchNormalization()(cnt_mod6)
 cnt_mod7 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(32, 64))(cnt_mod6)
 cnt_mod7 = Dropout(rate=0.25)(cnt_mod7)
+cnt_mod7 = BatchNormalization()(cnt_mod7)
 cnt_mod8 = Conv2D(filters=32, kernel_size=(1, 1))(cnt_mod7)
 
 decoder1 = MaxUnpooling2D((2, 2))([cnt_mod8, mask_1])
 decoder2 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(decoder1)
+decoder2 = BatchNormalization()(decoder2)
 decoder3 = Conv2D(filters=2, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(decoder2)
+decoder3 = BatchNormalization()(decoder3)
 reshape = Reshape((2, 400 * 200))(decoder3)
 permute = Permute(dims=(2, 1))(reshape)
 outputs = Activation("softmax")(permute)
@@ -89,7 +99,11 @@ outputs = Activation("softmax")(permute)
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print(model.summary())
 
-model.compile(loss='binary_crossentropy', optimizer=SGD(), metrics=['accuracy'])
-model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test))
+model_checkpoint = ModelCheckpoint("models/", monitor='val_loss', verbose=0, save_best_only=False,
+                                   save_weights_only=False, mode='auto', period=1)
+
+model.compile(loss='categorical_crossentropy', optimizer=SGD(), metrics=['accuracy'])
+model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test),
+          callbacks=[model_checkpoint])
 
 model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
