@@ -28,6 +28,7 @@
 #include <pcl/common/impl/angles.hpp>
 #include <pcl/common/common.h>
 #include <pcl/common/centroid.h>
+#include <pcl/common/geometry.h>
 #include <pcl/features/moment_of_inertia_estimation.h>
 #include <pcl/features/normal_3d.h>
 #include "visualization_msgs/Marker.h"
@@ -45,6 +46,7 @@ namespace htwk {
         tf::TransformListener m_transform;
         ros::Subscriber m_lidar_points_subscriber;
         ros::Publisher m_lane_point_publisher;
+        ros::Publisher m_trajectory_point_publisher;
 
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
