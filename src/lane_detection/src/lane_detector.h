@@ -35,6 +35,7 @@
 #include <tf/transform_listener.h>
 #include <pcl_ros/transforms.h>
 #include <cmath>
+#include <math.h>
 #include <vector>
 #include "spline.h"
 
@@ -61,8 +62,8 @@ namespace htwk {
 
         static pcl::PointXYZI average_point(pcl::PointCloud<pcl::PointXYZI> cluster_points);
 
-        static pcl::PointCloud<pcl::PointXYZI>
-        setCarOffset(pcl::PointCloud<pcl::PointXYZI> after_reducing_to_5points_cloud) noexcept;
+      //  static pcl::PointCloud<pcl::PointXYZI>
+        //setCarOffset(pcl::PointCloud<pcl::PointXYZI> after_reducing_to_5points_cloud) noexcept;
 
         static pcl::PointCloud<pcl::PointXYZI>
         divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI> max_cluster_point_cloud) noexcept;
