@@ -41,79 +41,9 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         if(output_cloud_ptr->empty())
             return;
 
-        //acceleration datastructure KdTree for EuclideanClusterExtraction
-        pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
-        tree->setInputCloud(output_cloud_ptr);
 
-        pcl::EuclideanClusterExtraction<pcl::PointXYZI> cluster_extraction;
-        cluster_extraction.setClusterTolerance(0.7);
-        cluster_extraction.setSearchMethod(tree);
-        cluster_extraction.setMinClusterSize(20);
-        cluster_extraction.setMaxClusterSize(std::numeric_limits<int>::max());
-        cluster_extraction.setInputCloud(output_cloud_ptr);
-
-        std::vector<pcl::PointIndices> cluster_indices;
-        cluster_extraction.extract(cluster_indices);
-
-        if(cluster_indices.size() ==0)
-            return;
-        pcl::PointIndices max_cluster_indices = *std::max_element(cluster_indices.begin(), cluster_indices.end(),
-                                                                  [](const pcl::PointIndices &a,
-                                                                     const pcl::PointIndices &b) {
-                                                                      return a.indices.size() < b.indices.size();
-                                                                  });
-        pcl::PointCloud<pcl::PointXYZI> max_cluster_points;
-        for (int index : max_cluster_indices.indices) {
-            max_cluster_points.points.push_back((*output_cloud_ptr)[index]);
-        }
-
-        //new cloud for points
-        std::vector<int> distanceVector;
-        pcl::PointCloud<pcl::PointXYZI> wp1, wp2, wp3, wp4, wp5;
-
-        //Get Points from Cloud
-        for (int i = 0; i < max_cluster_points.size(); i++) {
-            float distance = std::sqrt(max_cluster_points.at(i).x * max_cluster_points.at(i).x +
-                                       max_cluster_points.at(i).y * max_cluster_points.at(i).y +
-                                       max_cluster_points.at(i).z * max_cluster_points.at(i).z);
-
-            if (distance < 6.0) {
-                wp1.points.push_back(max_cluster_points.at(i));
-            } else if (distance < 7.0) {
-                wp2.points.push_back(max_cluster_points.at(i));
-            } else if (distance < 8.0) {
-                wp3.points.push_back(max_cluster_points.at(i));
-            } else if (distance < 9.0) {
-                wp4.points.push_back(max_cluster_points.at(i));
-            } else {
-                wp5.points.push_back(max_cluster_points.at(i));
-            }
-
-        }
-
-        std::vector<pcl::PointCloud<pcl::PointXYZI>> cloud_list;
-        cloud_list.push_back(wp1);
-        cloud_list.push_back(wp2);
-        cloud_list.push_back(wp3);
-        cloud_list.push_back(wp4);
-        cloud_list.push_back(wp5);
-
-
-        pcl::PointCloud<pcl::PointXYZI> final_output_cloud;
-
-        for (int i=0; i < cloud_list.size(); i++){
-            if(cloud_list.at(i).size() != 0)
-                final_output_cloud.points.push_back(average_point(cloud_list.at(i)));
-        }
-
-
-       /*
-        * weird time things
-        * double time_end = ros::Time::now().toSec() + (double)ros::Time::now().toNSec()/1000000000.0;
-        * ROS_INFO_STREAM("diff time: " << time_end - time_beg);
-        * */
         pcl::PCLPointCloud2 output_cloud;
-        pcl::toPCLPointCloud2(setCarOffset(final_output_cloud), output_cloud);
+        pcl::toPCLPointCloud2(setCarOffset(divideIntoFivePoints(buildMaxOfEuclideanCluster(output_cloud_ptr))), output_cloud);
         publish_lane(output_cloud);
     } catch(const std::exception& e){
         return;
@@ -179,10 +109,74 @@ pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::setCarOffset(pcl::PointClou
     return after_reducing_to_5points_cloud;
 }
 
+pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI>  max_cluster_point_cloud) noexcept{
+    std::vector<int> distanceVector;
+    pcl::PointCloud<pcl::PointXYZI> wp1, wp2, wp3, wp4, wp5;
+
+    for (int i = 0; i < max_cluster_point_cloud.size(); i++) {
+        float distance = std::sqrt(max_cluster_point_cloud.at(i).x * max_cluster_point_cloud.at(i).x +
+                                   max_cluster_point_cloud.at(i).y * max_cluster_point_cloud.at(i).y +
+                                   max_cluster_point_cloud.at(i).z * max_cluster_point_cloud.at(i).z);
+
+        if (distance < 6.0) {
+            wp1.points.push_back(max_cluster_point_cloud.at(i));
+        } else if (distance < 7.0) {
+            wp2.points.push_back(max_cluster_point_cloud.at(i));
+        } else if (distance < 8.0) {
+            wp3.points.push_back(max_cluster_point_cloud.at(i));
+        } else if (distance < 9.0) {
+            wp4.points.push_back(max_cluster_point_cloud.at(i));
+        } else {
+            wp5.points.push_back(max_cluster_point_cloud.at(i));
+        }
+
+    }
+
+    std::vector<pcl::PointCloud<pcl::PointXYZI>> cloud_list;
+    cloud_list.push_back(wp1);
+    cloud_list.push_back(wp2);
+    cloud_list.push_back(wp3);
+    cloud_list.push_back(wp4);
+    cloud_list.push_back(wp5);
 
 
+    pcl::PointCloud<pcl::PointXYZI> cloud_with_five_points;
 
+    for (int i=0; i < cloud_list.size(); i++){
+        if(cloud_list.at(i).size() != 0)
+            cloud_with_five_points.points.push_back(average_point(cloud_list.at(i)));
+    }
 
+    return cloud_with_five_points;
+}
 
+pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::buildMaxOfEuclideanCluster(pcl::PointCloud<pcl::PointXYZI>::Ptr prefilteredCloudPtr) noexcept{
 
+//acceleration datastructure KdTree for EuclideanClusterExtraction
+    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
+    tree->setInputCloud(prefilteredCloudPtr);
 
+    pcl::EuclideanClusterExtraction<pcl::PointXYZI> cluster_extraction;
+    cluster_extraction.setClusterTolerance(0.7);
+    cluster_extraction.setSearchMethod(tree);
+    cluster_extraction.setMinClusterSize(20);
+    cluster_extraction.setMaxClusterSize(std::numeric_limits<int>::max());
+    cluster_extraction.setInputCloud(prefilteredCloudPtr);
+
+    std::vector<pcl::PointIndices> cluster_indices;
+    cluster_extraction.extract(cluster_indices);
+
+    if(cluster_indices.size() ==0)
+        throw;
+    pcl::PointIndices max_cluster_indices = *std::max_element(cluster_indices.begin(), cluster_indices.end(),
+                                                              [](const pcl::PointIndices &a,
+                                                                 const pcl::PointIndices &b) {
+                                                                  return a.indices.size() < b.indices.size();
+                                                              });
+    pcl::PointCloud<pcl::PointXYZI> max_cluster_points;
+    for (int index : max_cluster_indices.indices) {
+        max_cluster_points.points.push_back((*prefilteredCloudPtr)[index]);
+    }
+
+    return max_cluster_points;
+}

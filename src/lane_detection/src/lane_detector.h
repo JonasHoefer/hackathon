@@ -60,6 +60,11 @@ namespace htwk {
 
         static pcl::PointCloud<pcl::PointXYZI> setCarOffset( pcl::PointCloud<pcl::PointXYZI>  after_reducing_to_5points_cloud) noexcept;
 
+        static pcl::PointCloud<pcl::PointXYZI> divideIntoFivePoints( pcl::PointCloud<pcl::PointXYZI>  max_cluster_point_cloud) noexcept;
+
+
+        static pcl::PointCloud<pcl::PointXYZI> buildMaxOfEuclideanCluster(pcl::PointCloud<pcl::PointXYZI>::Ptr prefilteredCloudPtr) noexcept;
+
 
     };
 }
