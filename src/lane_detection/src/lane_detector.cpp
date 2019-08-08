@@ -57,7 +57,6 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
 
         if(cluster_indices.size() ==0)
             return;
-
         pcl::PointIndices max_cluster_indices = *std::max_element(cluster_indices.begin(), cluster_indices.end(),
                                                                   [](const pcl::PointIndices &a,
                                                                      const pcl::PointIndices &b) {
@@ -173,7 +172,7 @@ pcl::PointXYZI htwk::lane_detector::average_point(pcl::PointCloud<pcl::PointXYZI
 
 pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::setCarOffset(pcl::PointCloud<pcl::PointXYZI>  after_reducing_to_5points_cloud) noexcept {
     float offset;
-    (after_reducing_to_5points_cloud.points.at(0).y > 0.0)? (offset = -5.4): (offset = 2.5);
+    (after_reducing_to_5points_cloud.points.at(0).y > 0.0)? (offset = -4.5): (offset = 2.5);
     for (int i = 0; i < after_reducing_to_5points_cloud.points.size(); i++){
         after_reducing_to_5points_cloud.points.at(i).y += offset;
     }
