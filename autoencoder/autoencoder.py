@@ -1,4 +1,4 @@
-from keras.layers import Permute, Softmax, Conv2D, Flatten, MaxPool2D, UpSampling2D, Reshape, Activation, Input
+from keras.layers import Permute, Softmax, Conv2D, Flatten, MaxPool2D, Dropout, Reshape, Activation, Input
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.preprocessing.image import load_img, img_to_array
@@ -63,12 +63,19 @@ encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 
 encoded2 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(encoded1)
 max_pool, mask_1 = MaxPoolingWithArgmax2D((2, 2))(encoded2)
 cnt_mod1 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 1))(max_pool)
+cnt_mod1 = Dropout(rate=0.25)(cnt_mod1)
 cnt_mod2 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 2))(cnt_mod1)
+cnt_mod2 = Dropout(rate=0.25)(cnt_mod2)
 cnt_mod3 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(2, 4))(cnt_mod2)
+cnt_mod3 = Dropout(rate=0.25)(cnt_mod3)
 cnt_mod4 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(4, 8))(cnt_mod3)
+cnt_mod4 = Dropout(rate=0.25)(cnt_mod4)
 cnt_mod5 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(8, 16))(cnt_mod4)
+cnt_mod5 = Dropout(rate=0.25)(cnt_mod5)
 cnt_mod6 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(16, 32))(cnt_mod5)
+cnt_mod6 = Dropout(rate=0.25)(cnt_mod6)
 cnt_mod7 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(32, 64))(cnt_mod6)
+cnt_mod7 = Dropout(rate=0.25)(cnt_mod7)
 cnt_mod8 = Conv2D(filters=32, kernel_size=(1, 1))(cnt_mod7)
 
 decoder1 = MaxUnpooling2D((2, 2))([cnt_mod8, mask_1])
@@ -81,8 +88,7 @@ outputs = Activation("softmax")(permute)
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print(model.summary())
 
-model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.01, decay=1e-5), metrics=['accuracy'])
-model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test),
-          callbacks=[TensorBoard(log_dir='/tmp/autoencoder-' + str(time.time()))])
+model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.01, decay=1e-2), metrics=['accuracy'])
+model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test))
 
 model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
