@@ -106,7 +106,7 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         //setOffset
         float offset;
 
-        (final_output_cloud.points.at(0).y > 0.0)? (offset = -5.4): (offset = 3.7);
+        (final_output_cloud.points.at(0).y > 0.0)? (offset = -5.4): (offset = 2.5);
         for (int i = 0; i < final_output_cloud.points.size(); i++){
             final_output_cloud.points.at(i).y += offset;
         }

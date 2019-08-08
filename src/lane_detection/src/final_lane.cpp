@@ -14,7 +14,7 @@ htwk::final_lane::final_lane(ros::NodeHandle &handle) noexcept {
 
 void htwk::final_lane::raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept {
     sensor_msgs::PointCloud2 cloud_msg_transformed;
-    pcl_ros::transformPointCloud("odom", *cloud_msg, cloud_msg_transformed, m_transform);
+    pcl_ros::transformPointCloud("ouster", *cloud_msg, cloud_msg_transformed, m_transform);
 
     pcl::PCLPointCloud2 input_cloud;
     pcl_conversions::toPCL(cloud_msg_transformed, input_cloud);
