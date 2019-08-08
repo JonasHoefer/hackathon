@@ -1,6 +1,6 @@
 from keras.layers import Permute, Softmax, Conv2D, Flatten, MaxPool2D, Dropout, Reshape, Activation, Input
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 from max_unpooling_layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
@@ -43,6 +43,7 @@ def data_processor(split_range):
                     label = label.reshape((img_h * img_w, n_labels))
                     labels.append(label)
                 except:
+                    print(str(iterator) + "_" + str(theta) + " not found!")
                     pass
 
     data = np.array(data)
@@ -59,7 +60,7 @@ session = tf.Session(config=config)
 
 
 inputs = Input(shape=(img_h, img_w, 1))
-encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(inputs)
+encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same', )(inputs)
 encoded2 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same')(encoded1)
 max_pool, mask_1 = MaxPoolingWithArgmax2D((2, 2))(encoded2)
 cnt_mod1 = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='elu', dilation_rate=(1, 1))(max_pool)
@@ -88,7 +89,7 @@ outputs = Activation("softmax")(permute)
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print(model.summary())
 
-model.compile(loss='binary_crossentropy', optimizer=Adam(lr=0.01, decay=1e-2), metrics=['accuracy'])
+model.compile(loss='binary_crossentropy', optimizer=SGD(), metrics=['accuracy'])
 model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test))
 
 model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
