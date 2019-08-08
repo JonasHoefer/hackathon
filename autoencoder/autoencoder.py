@@ -88,7 +88,7 @@ outputs = Activation("softmax")(permute)
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print(model.summary())
 
-model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.01, decay=1e-2), metrics=['accuracy'])
+model.compile(loss='binary_crossentropy', optimizer=Adam(lr=0.01, decay=1e-2), metrics=['accuracy'])
 model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=100, validation_data=(X_test, y_test))
 
 model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
