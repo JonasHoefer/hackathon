@@ -3,6 +3,7 @@
 //
 
 #include "lane_detector.h"
+
 #define FRAME_ID "ouster"
 
 
@@ -25,7 +26,7 @@ htwk::lane_detector::lane_detector(ros::NodeHandle &handle) noexcept {
  * eighth: add a Car Offset to the points to move them in the right lane for driving
  */
 void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept {
-    try{
+    try {
         //transform raw pointcloud to pointcloud to remove diagonal angle
         sensor_msgs::PointCloud2 cloud_msg_transformed;
         pcl_ros::transformPointCloud("odom", *cloud_msg, cloud_msg_transformed, m_transform);
@@ -36,17 +37,43 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
-        pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 6.0 ), -0.5,
+        pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 6.0),
+                                                                              -0.5,
                                                                               0.2);
-        if(output_cloud_ptr->empty())
+        if (output_cloud_ptr->empty())
             return;
 
+        //acceleration datastructure KdTree for EuclideanClusterExtraction
+        pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
+        tree->setInputCloud(output_cloud_ptr);
+
+        pcl::EuclideanClusterExtraction<pcl::PointXYZI> cluster_extraction;
+        cluster_extraction.setClusterTolerance(0.7);
+        cluster_extraction.setSearchMethod(tree);
+        cluster_extraction.setMinClusterSize(20);
+        cluster_extraction.setMaxClusterSize(std::numeric_limits<int>::max());
+        cluster_extraction.setInputCloud(output_cloud_ptr);
+
+        std::vector<pcl::PointIndices> cluster_indices;
+        cluster_extraction.extract(cluster_indices);
+
+        if (cluster_indices.size() == 0)
+            return;
+        pcl::PointIndices max_cluster_indices = *std::max_element(cluster_indices.begin(), cluster_indices.end(),
+                                                                  [](const pcl::PointIndices &a,
+                                                                     const pcl::PointIndices &b) {
+                                                                      return a.indices.size() < b.indices.size();
+                                                                  });
+        pcl::PointCloud<pcl::PointXYZI> max_cluster_points;
+        for (int index : max_cluster_indices.indices) {
+            max_cluster_points.points.push_back((*output_cloud_ptr)[index]);
+        }
 
         pcl::PCLPointCloud2 output_cloud;
-        pcl::toPCLPointCloud2(setCarOffset(divideIntoFivePoints(buildMaxOfEuclideanCluster(output_cloud_ptr))), output_cloud);
+        pcl::toPCLPointCloud2(setCarOffset(divideIntoFivePoints(max_cluster_points)), output_cloud);
         publish_lane(output_cloud);
-    } catch(const std::exception& e){
-        return;
+    } catch (const std::exception &e) {
+
     }
 
 }
@@ -59,8 +86,8 @@ void htwk::lane_detector::publish_lane(const pcl::PCLPointCloud2 &cloud) noexcep
 }
 
 
-
-pcl::PointCloud<pcl::PointXYZI>::Ptr htwk::lane_detector::intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input, float minimum) noexcept {
+pcl::PointCloud<pcl::PointXYZI>::Ptr
+htwk::lane_detector::intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input, float minimum) noexcept {
     pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filtered_points(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PassThrough<pcl::PointXYZI> intensity_filter;
     intensity_filter.setFilterFieldName("intensity");
@@ -71,7 +98,8 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr htwk::lane_detector::intensity_filter(const
     return intensity_filtered_points;
 }
 
-pcl::PointCloud<pcl::PointXYZI>::Ptr htwk::lane_detector::height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input, float min, float max) noexcept {
+pcl::PointCloud<pcl::PointXYZI>::Ptr
+htwk::lane_detector::height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input, float min, float max) noexcept {
     pcl::PointCloud<pcl::PointXYZI>::Ptr height_filtered_points(new pcl::PointCloud<pcl::PointXYZI>);
 
     pcl::PassThrough<pcl::PointXYZI> height_filter;
@@ -83,33 +111,35 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr htwk::lane_detector::height_filter(const pc
     return height_filtered_points;
 }
 
-pcl::PointXYZI htwk::lane_detector::average_point(pcl::PointCloud<pcl::PointXYZI> cluster_points){
-    pcl::PointXYZI wayPoint ;
+pcl::PointXYZI htwk::lane_detector::average_point(pcl::PointCloud<pcl::PointXYZI> cluster_points) {
+    pcl::PointXYZI wayPoint;
 
     for (int i = 0; i < cluster_points.size(); i++) {
         wayPoint.x = wayPoint.x + cluster_points.points[i].x;
         wayPoint.y = wayPoint.y + cluster_points.points[i].y;
         wayPoint.z = wayPoint.z + cluster_points.points[i].z;
     }
-    wayPoint.x = wayPoint.x / cluster_points.size() *1.0  ;
-    wayPoint.y = wayPoint.y / cluster_points.size() *1.0;
-    wayPoint.z = wayPoint.z / cluster_points.size() *1.0;
+    wayPoint.x = wayPoint.x / cluster_points.size() * 1.0;
+    wayPoint.y = wayPoint.y / cluster_points.size() * 1.0;
+    wayPoint.z = wayPoint.z / cluster_points.size() * 1.0;
     wayPoint.intensity = 10.0;
 
     return wayPoint;
 }
 
 
-pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::setCarOffset(pcl::PointCloud<pcl::PointXYZI>  after_reducing_to_5points_cloud) noexcept {
+pcl::PointCloud<pcl::PointXYZI>
+htwk::lane_detector::setCarOffset(pcl::PointCloud<pcl::PointXYZI> after_reducing_to_5points_cloud) noexcept {
     float offset;
-    (after_reducing_to_5points_cloud.points.at(0).y > 0.0)? (offset = -4.5): (offset = 2.5);
-    for (int i = 0; i < after_reducing_to_5points_cloud.points.size(); i++){
+    (after_reducing_to_5points_cloud.points.at(0).y > 0.0) ? (offset = -4.5) : (offset = 2.5);
+    for (int i = 0; i < after_reducing_to_5points_cloud.points.size(); i++) {
         after_reducing_to_5points_cloud.points.at(i).y += offset;
     }
     return after_reducing_to_5points_cloud;
 }
 
-pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI>  max_cluster_point_cloud) noexcept{
+pcl::PointCloud<pcl::PointXYZI>
+htwk::lane_detector::divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI> max_cluster_point_cloud) noexcept {
     std::vector<int> distanceVector;
     pcl::PointCloud<pcl::PointXYZI> wp1, wp2, wp3, wp4, wp5;
 
@@ -142,14 +172,14 @@ pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::divideIntoFivePoints(pcl::P
 
     pcl::PointCloud<pcl::PointXYZI> cloud_with_five_points;
 
-    for (int i=0; i < cloud_list.size(); i++){
-        if(cloud_list.at(i).size() != 0)
+    for (int i = 0; i < cloud_list.size(); i++) {
+        if (cloud_list.at(i).size() != 0)
             cloud_with_five_points.points.push_back(average_point(cloud_list.at(i)));
     }
 
     return cloud_with_five_points;
 }
-
+/*
 pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::buildMaxOfEuclideanCluster(pcl::PointCloud<pcl::PointXYZI>::Ptr prefilteredCloudPtr) noexcept{
 
 //acceleration datastructure KdTree for EuclideanClusterExtraction
@@ -180,3 +210,4 @@ pcl::PointCloud<pcl::PointXYZI> htwk::lane_detector::buildMaxOfEuclideanCluster(
 
     return max_cluster_points;
 }
+*/

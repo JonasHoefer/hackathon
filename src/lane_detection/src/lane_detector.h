@@ -50,20 +50,24 @@ namespace htwk {
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
 
-         void publish_lane(const pcl::PCLPointCloud2 &cloud) noexcept;
+        void publish_lane(const pcl::PCLPointCloud2 &cloud) noexcept;
 
-        static pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float minimum) noexcept;
+        static pcl::PointCloud<pcl::PointXYZI>::Ptr
+        intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input, float minimum) noexcept;
 
-        static pcl::PointCloud<pcl::PointXYZI>::Ptr height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float min, float max) noexcept;
+        static pcl::PointCloud<pcl::PointXYZI>::Ptr
+        height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr &input, float min, float max) noexcept;
 
         static pcl::PointXYZI average_point(pcl::PointCloud<pcl::PointXYZI> cluster_points);
 
-        static pcl::PointCloud<pcl::PointXYZI> setCarOffset( pcl::PointCloud<pcl::PointXYZI>  after_reducing_to_5points_cloud) noexcept;
+        static pcl::PointCloud<pcl::PointXYZI>
+        setCarOffset(pcl::PointCloud<pcl::PointXYZI> after_reducing_to_5points_cloud) noexcept;
 
-        static pcl::PointCloud<pcl::PointXYZI> divideIntoFivePoints( pcl::PointCloud<pcl::PointXYZI>  max_cluster_point_cloud) noexcept;
+        static pcl::PointCloud<pcl::PointXYZI>
+        divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI> max_cluster_point_cloud) noexcept;
 
 
-        static pcl::PointCloud<pcl::PointXYZI> buildMaxOfEuclideanCluster(pcl::PointCloud<pcl::PointXYZI>::Ptr prefilteredCloudPtr) noexcept;
+        //static pcl::PointCloud<pcl::PointXYZI> buildMaxOfEuclideanCluster(pcl::PointCloud<pcl::PointXYZI>::Ptr prefilteredCloudPtr) noexcept;
 
 
     };
