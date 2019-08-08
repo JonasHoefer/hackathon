@@ -51,7 +51,7 @@ def data_processor(split_range):
     return data, labels
 
 
-X_train, y_train = data_processor(range(0, 1))
+X_train, y_train = data_processor(range(0, 73))
 X_test, y_test = data_processor(range(73, 89))
 
 config = tf.ConfigProto()
@@ -99,7 +99,7 @@ outputs = Activation("softmax")(permute)
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
 print(model.summary())
 
-model_checkpoint = ModelCheckpoint("models/", monitor='val_loss', verbose=0, save_best_only=False,
+model_checkpoint = ModelCheckpoint("models/weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5", monitor='val_loss', verbose=1, save_best_only=False,
                                    save_weights_only=False, mode='auto', period=1)
 
 model.compile(loss='categorical_crossentropy', optimizer=SGD(), metrics=['accuracy'])
