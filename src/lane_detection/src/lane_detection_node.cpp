@@ -1,11 +1,13 @@
 //
-// Created by mechlab on 06.08.19.
+// Created by Jonas on 06.08.19.
 //
 
 #include "ros/ros.h"
 #include "lane_detector.h"
 
 int main(int argc, char **argv) {
+
+    //initialize node
     ros::init(argc, argv, "lane_detector");
     ros::NodeHandle node_handle;
     ros::Rate loop_rate(5);

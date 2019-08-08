@@ -1,5 +1,5 @@
 //
-// Created by mechlab on 06.08.19.
+// Created by Jonas on 06.08.19.
 //
 
 #ifndef HACKATHON_LANE_DETECTOR_H
@@ -34,7 +34,8 @@
 #include "visualization_msgs/MarkerArray.h"
 #include <tf/transform_listener.h>
 #include <pcl_ros/transforms.h>
-
+#include <cmath>
+#include <vector>
 
 namespace htwk {
     class lane_detector {
@@ -45,7 +46,6 @@ namespace htwk {
         tf::TransformListener m_transform;
         ros::Subscriber m_velodyne_points_subscriber;
         ros::Publisher m_lane_point_publisher;
-        ros::Publisher path_publisher;
 
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
@@ -55,6 +55,11 @@ namespace htwk {
         static pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float minimum) noexcept;
 
         static pcl::PointCloud<pcl::PointXYZI>::Ptr height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float min, float max) noexcept;
+
+        static pcl::PointXYZI average_point(pcl::PointCloud<pcl::PointXYZI> cluster_points);
+
+        static pcl::PointCloud<pcl::PointXYZI> setCarOffset( pcl::PointCloud<pcl::PointXYZI>  after_reducing_to_5points_cloud) noexcept;
+
 
     };
 }

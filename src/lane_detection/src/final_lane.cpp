@@ -1,5 +1,5 @@
 //
-// Created by mechlab on 08.08.19.
+// Created by Mariia,Karl,Friedrich,Nick on 08.08.19.
 //
 
 #include "final_lane.h"
@@ -24,10 +24,6 @@ void htwk::final_lane::raw_data_callback(const sensor_msgs::PointCloud2ConstPtr 
 
     publish_lane_path(*input_cloud_ptr);
 }
-
-/*
- * publish converted Points as Path for Car
- * */
 
 void htwk::final_lane::publish_lane_path(const pcl::PointCloud<pcl::PointXYZI> &cloud) noexcept {
 
