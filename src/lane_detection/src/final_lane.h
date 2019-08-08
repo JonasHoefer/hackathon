@@ -1,10 +1,12 @@
 //
-// Created by mechlab on 06.08.19.
+// Created by mechlab on 08.08.19.
 //
 
-#ifndef HACKATHON_LANE_DETECTOR_H
-#define HACKATHON_LANE_DETECTOR_H
+#ifndef HACKATHON_FINAL_LANE_H
+#define HACKATHON_FINAL_LANE_H
 
+
+#include <ros/node_handle.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include "ros/ros.h"
 #include <pcl/io/pcd_io.h>
@@ -35,29 +37,22 @@
 #include <tf/transform_listener.h>
 #include <pcl_ros/transforms.h>
 
-
 namespace htwk {
-    class lane_detector {
+    class final_lane {
     public:
-        explicit lane_detector(ros::NodeHandle &handle) noexcept;
+        explicit final_lane(
+                ros::NodeHandle &handle) noexcept;
+
 
     private:
         tf::TransformListener m_transform;
-        ros::Subscriber m_velodyne_points_subscriber;
-        ros::Publisher m_lane_point_publisher;
+        ros::Subscriber lane_detector_subscriber;
         ros::Publisher path_publisher;
 
     private:
         void raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept;
-
-         void publish_lane(const pcl::PCLPointCloud2 &cloud) noexcept;
-
-        static pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float minimum) noexcept;
-
-        static pcl::PointCloud<pcl::PointXYZI>::Ptr height_filter(const pcl::PointCloud<pcl::PointXYZI>::Ptr& input, float min, float max) noexcept;
-
+        void publish_lane_path(const pcl::PointCloud<pcl::PointXYZI> &cloud) noexcept;
     };
 }
 
-
-#endif //HACKATHON_LANE_DETECTOR_H
+#endif //HACKATHON_FINAL_LANE_H
