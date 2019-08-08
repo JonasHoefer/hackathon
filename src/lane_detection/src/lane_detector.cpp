@@ -69,8 +69,36 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
             max_cluster_points.points.push_back((*output_cloud_ptr)[index]);
         }
 
+        pcl::PointCloud<pcl::PointXYZI> final_cloud = setCarOffset(divideIntoFivePoints(max_cluster_points));
+
+
+        //building polynom
+        tk::spline polynom_with_final_points;
+        std::vector<double> pts_x, pts_y;
+
+        for (int i=0; i< final_cloud.points.size(); i++){
+
+            pts_x.push_back(final_cloud.points.at(i).x);
+            pts_y.push_back(final_cloud.points.at(i).y);
+        }
+        if (pts_x.size() < 3)
+            return;
+
+        polynom_with_final_points.set_points(pts_x,pts_y, false);
+
+        pcl::PointCloud<pcl::PointXYZI> cloud_from_polynom;
+        for (int i = 0; i < 5 ; i++) {
+            pcl::PointXYZI current_point;
+            current_point.x = (i+1)*2.0;
+            current_point.y = polynom_with_final_points((i+1)*2.0);
+            current_point.z = 0.0;
+            current_point.intensity = 10.0;
+            cloud_from_polynom.points.push_back(current_point);
+        }
+
+
         pcl::PCLPointCloud2 output_cloud;
-        pcl::toPCLPointCloud2(setCarOffset(divideIntoFivePoints(max_cluster_points)), output_cloud);
+        pcl::toPCLPointCloud2(cloud_from_polynom, output_cloud);
         publish_lane(output_cloud);
     } catch (const std::exception &e) {
 

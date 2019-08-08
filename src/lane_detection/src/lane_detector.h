@@ -36,6 +36,7 @@
 #include <pcl_ros/transforms.h>
 #include <cmath>
 #include <vector>
+#include "spline.h"
 
 namespace htwk {
     class lane_detector {
