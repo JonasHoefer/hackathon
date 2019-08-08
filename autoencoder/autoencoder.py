@@ -2,8 +2,6 @@ from keras.layers import Permute, Softmax, Conv2D, Flatten, MaxPool2D, UpSamplin
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.preprocessing.image import load_img, img_to_array
-from keras.callbacks import TensorBoard
-import cv2
 import numpy as np
 from max_unpooling_layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
 import time
@@ -31,11 +29,11 @@ def data_processor(split_range):
             iterator = "%06d" % i
             try:
                 feature = img_to_array(
-                    load_img('/home/mechlab/hackathon/data/features/' + prefix + '_' + iterator + '.png',
+                    load_img('../data/features/' + prefix + '_' + iterator + '.png',
                              color_mode="grayscale"))
                 data.append(feature)
                 label = img_to_array(
-                    load_img('/home/mechlab/hackathon/data/labels_filtered/label_' + prefix + '_' + iterator + '.png',
+                    load_img('../data/labels_filtered/label_' + prefix + '_' + iterator + '.png',
                              color_mode="grayscale")).reshape((img_h, img_w))
                 label = label_map(np.clip(label, 0, 1))
                 label = label.reshape((img_h * img_w, n_labels))
@@ -72,10 +70,10 @@ permute = Permute(dims=(2, 1))(reshape)
 outputs = Activation("softmax")(permute)
 
 model = Model(inputs=inputs, outputs=outputs, name="LoDNN")
-print model.summary()
+print(model.summary())
 
 model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
 model.fit(X_train, y_train, shuffle=True, batch_size=4, epochs=10, validation_data=(X_test, y_test),
-          callbacks=[TrainValTensorBoard(log_dir='/tmp/autoencoder2')])
+          callbacks=[TrainValTensorBoard(log_dir='/tmp/autoencoder-'+str(time.time()))])
 
 model.save_weights("autoencoder" + str(time.time()) + ".hdf5")
