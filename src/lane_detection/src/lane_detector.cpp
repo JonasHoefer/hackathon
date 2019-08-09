@@ -37,8 +37,8 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
         pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 6.0),
-                                                                              -0.5,
-                                                                              0.2);
+                                                                              -5,
+                                                                              5);
         if (output_cloud_ptr->empty())
             return;
 
@@ -47,9 +47,9 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         tree->setInputCloud(output_cloud_ptr);
 
         pcl::EuclideanClusterExtraction<pcl::PointXYZI> cluster_extraction;
-        cluster_extraction.setClusterTolerance(0.7);
+        cluster_extraction.setClusterTolerance(2.2);
         cluster_extraction.setSearchMethod(tree);
-        cluster_extraction.setMinClusterSize(20);
+        cluster_extraction.setMinClusterSize(10);
         cluster_extraction.setMaxClusterSize(std::numeric_limits<int>::max());
         cluster_extraction.setInputCloud(output_cloud_ptr);
 
@@ -192,7 +192,7 @@ htwk::lane_detector::divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI> max_cl
             wp2.points.push_back(max_cluster_point_cloud.at(i));
         } else if (distance < 8.0) {
             wp3.points.push_back(max_cluster_point_cloud.at(i));
-        } else if (distance < 9.0) {
+        } else if (distance < 10.0) {
             wp4.points.push_back(max_cluster_point_cloud.at(i));
         } else {
             wp5.points.push_back(max_cluster_point_cloud.at(i));
