@@ -4,6 +4,9 @@
 #include "lane_detector.h"
 
 #define FRAME_ID "ouster"
+#define OFFSET_LANE_CW -4.5
+#define OFFSET_LANE_CCW 2.5
+
 
 
 htwk::lane_detector::lane_detector(ros::NodeHandle &handle) noexcept {
@@ -36,9 +39,9 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
-        pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 6.0),
-                                                                              -0.5,
-                                                                              0.2);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 5.0),
+                                                                              -5,
+                                                                              5);
         if (output_cloud_ptr->empty())
             return;
 
@@ -47,9 +50,9 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         tree->setInputCloud(output_cloud_ptr);
 
         pcl::EuclideanClusterExtraction<pcl::PointXYZI> cluster_extraction;
-        cluster_extraction.setClusterTolerance(0.7);
+        cluster_extraction.setClusterTolerance(2.2);
         cluster_extraction.setSearchMethod(tree);
-        cluster_extraction.setMinClusterSize(20);
+        cluster_extraction.setMinClusterSize(10);
         cluster_extraction.setMaxClusterSize(std::numeric_limits<int>::max());
         cluster_extraction.setInputCloud(output_cloud_ptr);
 
@@ -68,28 +71,33 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
             max_cluster_points.points.push_back((*output_cloud_ptr)[index]);
         }
 
+
+
         pcl::PointCloud<pcl::PointXYZI> final_cloud = divideIntoFivePoints(max_cluster_points);
 
 
-        //building polynom
+
+
+        //building polynom from final_cloud points
         tk::spline polynom_with_final_points;
         std::vector<double> pts_x, pts_y;
 
         for (int i = 0; i < final_cloud.points.size(); i++) {
-
             pts_x.push_back(final_cloud.points.at(i).x);
             pts_y.push_back(final_cloud.points.at(i).y);
         }
+        // wegen der Fehlermeldung der Bibliothek spline.h
         if (pts_x.size() < 3)
             return;
-
         polynom_with_final_points.set_points(pts_x, pts_y, false);
+
+        //calculate 5 points with offset
         pcl::PointXYZI current_point;
         pcl::PointCloud<pcl::PointXYZI> cloud_from_polynom;
-        double offset;
-        double m, dx, dy;
+        double offset, m, dx, dy;
         double y1 = polynom_with_final_points(2.0);
-        (y1 > 0.0) ? (offset = -4.5) : (offset = 2.5);
+
+        (y1 > 0.0) ? (offset = OFFSET_LANE_CW) : (offset = OFFSET_LANE_CCW);
 
         for (int i = 0; i < 5; i++) {
 
@@ -179,20 +187,28 @@ htwk::lane_detector::setCarOffset(pcl::PointCloud<pcl::PointXYZI> after_reducing
 pcl::PointCloud<pcl::PointXYZI>
 htwk::lane_detector::divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI> max_cluster_point_cloud) noexcept {
     std::vector<int> distanceVector;
+    std::vector<pcl::PointCloud<pcl::PointXYZI>> cloud_list;
     pcl::PointCloud<pcl::PointXYZI> wp1, wp2, wp3, wp4, wp5;
+
 
     for (int i = 0; i < max_cluster_point_cloud.size(); i++) {
         float distance = std::sqrt(max_cluster_point_cloud.at(i).x * max_cluster_point_cloud.at(i).x +
                                    max_cluster_point_cloud.at(i).y * max_cluster_point_cloud.at(i).y +
                                    max_cluster_point_cloud.at(i).z * max_cluster_point_cloud.at(i).z);
 
-        if (distance < 6.0) {
+        pcl::PointXYZI minPoint, maxPoint;
+        pcl::getMinMax3D(max_cluster_point_cloud, minPoint, maxPoint);
+
+         double step = (maxPoint.x - minPoint.x)/5.;
+         double max_dist_for_points = 3 + step;
+
+        if (distance < max_dist_for_points) {
             wp1.points.push_back(max_cluster_point_cloud.at(i));
-        } else if (distance < 7.0) {
+        } else if (distance < (max_dist_for_points+=step) ) {
             wp2.points.push_back(max_cluster_point_cloud.at(i));
-        } else if (distance < 8.0) {
+        } else if (distance < (max_dist_for_points+=step)) {
             wp3.points.push_back(max_cluster_point_cloud.at(i));
-        } else if (distance < 9.0) {
+        } else if (distance < (max_dist_for_points+=step)) {
             wp4.points.push_back(max_cluster_point_cloud.at(i));
         } else {
             wp5.points.push_back(max_cluster_point_cloud.at(i));
@@ -200,7 +216,6 @@ htwk::lane_detector::divideIntoFivePoints(pcl::PointCloud<pcl::PointXYZI> max_cl
 
     }
 
-    std::vector<pcl::PointCloud<pcl::PointXYZI>> cloud_list;
     cloud_list.push_back(wp1);
     cloud_list.push_back(wp2);
     cloud_list.push_back(wp3);
