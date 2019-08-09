@@ -5,6 +5,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.preprocessing.image import load_img, img_to_array, array_to_img
 import numpy as np
 from max_unpooling_layers import MaxPoolingWithArgmax2D, MaxUnpooling2D
+from keras.utils.vis_utils import plot_model
 import time
 import tensorflow as tf
 from keras.callbacks import TensorBoard
@@ -22,28 +23,28 @@ n_labels = 2
 def data_processor(split_range):
     prefix_list = ['um', 'umm', 'uu']
     data = []
-    for i in split_range:
-        feature = img_to_array(
-            load_img('images_ours/img_cloud_' + str(i) + '.png',
-                     color_mode="grayscale"))
-        data.append(feature)
-    # for prefix in prefix_list:
-    #     for i in split_range:
-    #         iterator = "%06d" % i
-    #         try:
-    #             feature = img_to_array(
-    #                 load_img('/home/mechlab/hackathon/data/testing/' + prefix + '_' + iterator + '.png',
-    #                          color_mode="grayscale"))
-    #             data.append(feature)
-    #         except:
-    #             print(str(iterator) + " not found!")
-    #             pass
+    # for i in split_range:
+    #     feature = img_to_array(
+    #         load_img('images_ours/img_cloud_' + str(i) + '.png',
+    #                  color_mode="grayscale"))
+    #     data.append(feature)
+    for prefix in prefix_list:
+        for i in split_range:
+            iterator = "%06d" % i
+            try:
+                feature = img_to_array(
+                    load_img('/home/mechlab/hackathon/data/features/' + prefix + '_' + iterator + '_0.png',
+                             color_mode="grayscale"))
+                data.append(feature)
+            except:
+                print(str(iterator) + " not found!")
+                pass
 
     data = np.array(data)
     return data
 
 
-test_data = data_processor(range(60, 70))
+test_data = data_processor(range(38, 39))
 
 inputs = Input(shape=(img_h, img_w, 1))
 encoded1 = Conv2D(filters=32, kernel_size=(3, 3), activation='elu', strides=(1, 1), padding='same', )(inputs)
@@ -89,25 +90,41 @@ print(model.summary())
 model.compile(loss='categorical_crossentropy', optimizer=SGD(), metrics=['accuracy'])
 model.load_weights('weights-improvement-100-0.91.hdf5')
 
+plot_model(model, to_file='model.png', show_shapes=True)
+
 output = model.predict(test_data, batch_size=4, verbose=0)
 print output.shape
 output = output.reshape((output.shape[0], img_h, img_w, n_labels))
 
-n = 10  # how many digits we will display
+n = 3  # how many digits we will display
 plt.figure(figsize=(20, 4))
 for i in range(n):
+    plt.imshow(test_data[i].reshape(400, 200), 'gray', interpolation='none')
+    result = output[i].reshape(400, 200, 2)[:, :, 0]
+    raw = result.copy()
+    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGRA)
+    print result.shape
+    print result
+    # compare = np.full((400, 200, 3), 0.9)
+    # result[np.greater(result, compare)] = np.array([1, 0, 1])
+    indices = np.where(result < 0.2)
+    result.fill(0)
+    result[indices[0], indices[1], :] = [0.9, 0.1, 0.7, 0.8]
+    plt.axis('off')
+    plt.imshow(result, interpolation='none')
+    plt.savefig('results/result_kitti_train_praesi' + str(i) + '.png', bbox_inches='tight')
     # display original
-    ax = plt.subplot(2, n, i + 1)
-    plt.imshow(test_data[i].reshape(400, 200))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-    plt.title(['um', 'umm', 'uu'][i % 3] + str(int(i / 3)))
-
-    # display reconstruction
-    ax = plt.subplot(2, n, i + 1 + n)
-    plt.imshow(output[i].reshape(400, 200, 2)[:, :, 0])
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-plt.show()
+    # ax = plt.subplot(2, n, i + 1)
+    # plt.imshow(test_data[i].reshape(400, 200))
+    # plt.gray()
+    # ax.get_xaxis().set_visible(False)
+    # ax.get_yaxis().set_visible(False)
+    # plt.title(['um', 'umm', 'uu'][i % 3] + str(int(i / 3)))
+    #
+    # # display reconstruction
+    # ax = plt.subplot(2, n, i + 1 + n)
+    # plt.imshow(output[i].reshape(400, 200, 2)[:, :, 0])
+    # plt.gray()
+    # ax.get_xaxis().set_visible(False)
+    # ax.get_yaxis().set_visible(False)
+#plt.show()
