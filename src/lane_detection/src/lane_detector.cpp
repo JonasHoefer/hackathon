@@ -25,6 +25,7 @@ htwk::lane_detector::lane_detector(ros::NodeHandle &handle) noexcept {
  * fifth: take the cluster with maximum amoint of points to extract outer lane
  * sixth: divide maximum cluster into 5 areas of pointclouds depending on distance
  * seventh: take 5 average points from that areas
+ * build polynom
  * eighth: add a Car Offset to the points to move them in the right lane for driving
  */
 void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) noexcept {
@@ -45,6 +46,7 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
                                                                               5);
         if (output_cloud_ptr->empty())
             return;
+       // pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr2= output_cloud_ptr;
 
         //acceleration datastructure KdTree for EuclideanClusterExtraction
         pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
@@ -72,12 +74,7 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
             max_cluster_points.points.push_back((*output_cloud_ptr)[index]);
         }
 
-
-
         pcl::PointCloud<pcl::PointXYZI> final_cloud = divideIntoFivePoints(max_cluster_points);
-
-
-
 
         //building polynom from final_cloud points
         tk::spline polynom_with_final_points;
@@ -115,6 +112,10 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
             current_point.intensity = 10.0;
             cloud_from_polynom.points.push_back(current_point);
         }
+
+        // *output_cloud_ptr2 ---cloud after intensity and height filter
+        //final_cloud ---cloud after building cluster and take max
+        //cloud_from_polynom  ---best cloud
 
         pcl::PCLPointCloud2 output_cloud;
         pcl::toPCLPointCloud2(cloud_from_polynom, output_cloud);

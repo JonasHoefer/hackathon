@@ -32,14 +32,16 @@ void htwk::final_lane::publish_lane_path(const pcl::PointCloud<pcl::PointXYZI> &
     geometry_msgs::PoseStamped pose;
 
     for (int i = 0; i < cloud.size(); i++) {
-        pose.header.stamp = ros::Time::now();
-        pose.header.frame_id = FRAME_ID;
-        pose.pose.position.x = cloud.points.at(i).x;
-        pose.pose.position.y = cloud.points.at(i).y;
-        pose.pose.position.z = cloud.points.at(i).z;
-        pose.pose.orientation.x = pose.pose.orientation.y = pose.pose.orientation.z = 0.0;
-        pose.pose.orientation.w = 1.0;
-        path.poses.push_back(pose);
+        if(cloud.points.at(i).x > 2.5){
+            pose.header.stamp = ros::Time::now();
+            pose.header.frame_id = FRAME_ID;
+            pose.pose.position.x = cloud.points.at(i).x;
+            pose.pose.position.y = cloud.points.at(i).y;
+            pose.pose.position.z = cloud.points.at(i).z;
+            pose.pose.orientation.x = pose.pose.orientation.y = pose.pose.orientation.z = 0.0;
+            pose.pose.orientation.w = 1.0;
+            path.poses.push_back(pose);
+        }
     }
     path.header.frame_id = FRAME_ID;
     path.header.stamp = ros::Time::now();
