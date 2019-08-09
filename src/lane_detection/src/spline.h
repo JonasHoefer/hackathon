@@ -290,7 +290,23 @@ void spline::set_points(const std::vector<double>& x,
     m_x=x;
     m_y=y;
     int   n=x.size();
-    // TODO: maybe sort x and y, rather than returning an error
+    //sorted vectors made by Mariia Fortova and Karl -Augustin Jahnel
+    std::vector<double> sorted_x = x;
+    std::vector<double> sorted_y = y;
+    std::sort(sorted_x.begin(),sorted_x.end());
+
+    for(int i=0;i<sorted_x.size();i++){
+        double current_x = sorted_x.at(i);
+       for(int j=0; j<m_x.size(); j++){
+           if (current_x == m_x.at(j)){
+               sorted_y.at(i) = y.at(j);
+           }
+       }
+    }
+
+    m_y=sorted_y;
+    m_x=sorted_x;
+
     for(int i=0; i<n-1; i++) {
         assert(m_x[i]<m_x[i+1]);
     }

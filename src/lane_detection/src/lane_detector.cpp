@@ -39,7 +39,11 @@ void htwk::lane_detector::raw_data_callback(const sensor_msgs::PointCloud2ConstP
         pcl::PointCloud<pcl::PointXYZI>::Ptr input_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::fromPCLPointCloud2(input_cloud, *input_cloud_ptr);
 
+<<<<<<< HEAD
         pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 5.0),
+=======
+        pcl::PointCloud<pcl::PointXYZI>::Ptr output_cloud_ptr = height_filter(intensity_filter(input_cloud_ptr, 6.0),
+>>>>>>> cf2412bfa9ceb0e48e8c6ad3e2b314f09307f244
                                                                               -5,
                                                                               5);
         if (output_cloud_ptr->empty())
