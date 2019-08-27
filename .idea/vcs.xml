@@ -2,8 +2,10 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/keras-segnet" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/kitti-pcl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/kitti_player" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/spline" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tf-keras-SegNet" vcs="Git" />
   </component>
 </project>
